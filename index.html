@@ -445,4 +445,400 @@
 
   const achievements = [
     { id:'a1', threshold:100,      title:"Birinchi yuzlik",    icon:'🥉', done:false },
-    { id:'a2', threshold:1000,     title:"Ming tanga ustas
+    { id:'a2', threshold:1000,     title:"Ming tanga ustasi",  icon:'🥈', done:false },
+    { id:'a3', threshold:10000,    title:"O'n minglik boy",    icon:'🥇', done:false },
+    { id:'a4', threshold:100000,   title:"Tanga magnati",      icon:'💎', done:false },
+    { id:'a5', threshold:1000000,  title:"Millioner",          icon:'👑', done:false },
+    { id:'a6', threshold:10000000, title:"Tangalar imperatori",icon:'🌟', done:false },
+  ];
+
+  // ===== STATE =====
+  let coins = 0;
+  let totalEarned = 0;
+  let totalClicks = 0;
+  let clickPower = 1;
+  let autoRate = 0;
+  let comboCount = 0;
+  let comboTimer = null;
+  let achCount = 0;
+
+  let profile = { name:'O\'yinchi', surname:'', nick:'username', age:'', date:'' };
+  let settings = { lang:'uz', vibrate:true, sound:true };
+
+  // Daily bonus
+  let lastDailyDate = '';
+  let dailyStreak = 0;
+
+  // Fake leaderboard names
+  const fakeNames = [
+    'TangaQirol','ZavodBoss','MillionKliker','CoinMaster_UZ','BosBos99',
+    'PulTopchi','FabrikaKing','TangaImperator','CoinHunter','ZavodEgasi'
+  ];
+
+  // ===== LOAD SAVE =====
+  function loadSave() {
+    try {
+      const s = localStorage.getItem('tfp_save');
+      if (!s) return;
+      const d = JSON.parse(s);
+      coins        = d.coins        || 0;
+      totalEarned  = d.totalEarned  || 0;
+      totalClicks  = d.totalClicks  || 0;
+      lastDailyDate= d.lastDailyDate|| '';
+      dailyStreak  = d.dailyStreak  || 0;
+      if (d.profile)   Object.assign(profile, d.profile);
+      if (d.settings)  Object.assign(settings, d.settings);
+      if (d.upgrades) {
+        d.upgrades.forEach(su => {
+          const u = upgrades.find(x => x.id === su.id);
+          if (u) u.count = su.count || 0;
+        });
+      }
+      if (d.achievements) {
+        d.achievements.forEach(sa => {
+          const a = achievements.find(x => x.id === sa.id);
+          if (a) a.done = sa.done || false;
+        });
+      }
+    } catch(e) {}
+  }
+
+  function saveGame() {
+    try {
+      localStorage.setItem('tfp_save', JSON.stringify({
+        coins, totalEarned, totalClicks, lastDailyDate, dailyStreak,
+        profile, settings,
+        upgrades: upgrades.map(u => ({ id:u.id, count:u.count })),
+        achievements: achievements.map(a => ({ id:a.id, done:a.done })),
+      }));
+    } catch(e) {}
+  }
+
+  // ===== RECALC =====
+  function recalc() {
+    clickPower = 1;
+    autoRate   = 0;
+    upgrades.forEach(u => {
+      if (u.count <= 0) return;
+      if (u.type === 'click') clickPower += u.power * u.count;
+      else                    autoRate   += u.power * u.count;
+    });
+    achCount = achievements.filter(a => a.done).length;
+  }
+
+  function getCost(u) {
+    return Math.floor(u.baseCost * Math.pow(u.costMul, u.count));
+  }
+
+  function fmt(n) {
+    if (n >= 1e9)  return (n/1e9).toFixed(2)  + 'B';
+    if (n >= 1e6)  return (n/1e6).toFixed(2)  + 'M';
+    if (n >= 1e3)  return (n/1e3).toFixed(1)  + 'K';
+    return Math.floor(n).toString();
+  }
+
+  // ===== UI UPDATE =====
+  function updateUI() {
+    document.getElementById('coinsVal').textContent    = fmt(coins);
+    document.getElementById('rateVal').textContent     = 'soniyasiga +' + fmt(autoRate);
+    document.getElementById('clickPowerVal').textContent = '+' + fmt(clickPower);
+    document.getElementById('statClicks').textContent  = fmt(totalClicks);
+    document.getElementById('statTotal').textContent   = fmt(totalEarned);
+    document.getElementById('statAch').textContent     = achCount + '/' + achievements.length;
+  }
+
+  function renderShop() {
+    const shopEl = document.getElementById('shop');
+    shopEl.innerHTML = '';
+    upgrades.forEach(u => {
+      const cost = getCost(u);
+      const affordable = coins >= cost;
+      const div = document.createElement('div');
+      div.className = 'item' + (affordable ? '' : ' locked');
+      div.innerHTML = `
+        <div class="icon">${u.icon}</div>
+        <div class="info">
+          <div class="name">${u.name}</div>
+          <div class="desc">${u.desc}</div>
+        </div>
+        <div class="right">
+          <div class="cost">● ${fmt(cost)}</div>
+          <div class="count">${u.count > 0 ? 'x' + u.count : ''}</div>
+        </div>`;
+      div.addEventListener('click', () => buyUpgrade(u));
+      shopEl.appendChild(div);
+    });
+  }
+
+  function renderRank() {
+    const list = document.getElementById('rankList');
+    list.innerHTML = '';
+    // Build fake + real leaderboard
+    const myNick = profile.nick || 'Siz';
+    const entries = [];
+    fakeNames.forEach((nm, i) => {
+      entries.push({ nick: nm, score: Math.floor(totalEarned * (0.3 + Math.random() * 2.5) * (10 - i) / 10) + Math.floor(Math.random()*50000) });
+    });
+    entries.push({ nick: myNick, score: Math.floor(totalEarned), isMe: true });
+    entries.sort((a,b) => b.score - a.score);
+
+    entries.forEach((e, i) => {
+      const row = document.createElement('div');
+      row.className = 'rank-row' + (e.isMe ? ' me' : '');
+      const posClass = i===0 ? 'top1' : i===1 ? 'top2' : i===2 ? 'top3' : '';
+      const posLabel = i===0 ? '🥇' : i===1 ? '🥈' : i===2 ? '🥉' : (i+1);
+      row.innerHTML = `<div class="pos ${posClass}">${posLabel}</div>
+        <div class="nm">${e.nick}${e.isMe ? ' (Siz)' : ''}</div>
+        <div class="sc">● ${fmt(e.score)}</div>`;
+      list.appendChild(row);
+    });
+  }
+
+  function renderProfile() {
+    document.getElementById('profNameDisp').textContent  = (profile.name || '') + ' ' + (profile.surname || '');
+    document.getElementById('profNickDisp').textContent  = '@' + (profile.nick || 'username');
+    document.getElementById('profAgeDisp').textContent   = profile.age ? profile.age + ' yosh' : '-';
+    document.getElementById('profDateDisp').textContent  = profile.date || '-';
+    document.getElementById('profClicksDisp').textContent= fmt(totalClicks);
+    document.getElementById('profTotalDisp').textContent = fmt(totalEarned);
+    // Fill inputs
+    document.getElementById('inpName').value  = profile.name    || '';
+    document.getElementById('inpSur').value   = profile.surname || '';
+    document.getElementById('inpNick').value  = profile.nick    || '';
+    document.getElementById('inpAge').value   = profile.age     || '';
+    document.getElementById('inpDate').value  = profile.date    || '';
+  }
+
+  // ===== DAILY BONUS =====
+  function checkDaily() {
+    const today = new Date().toDateString();
+    const banner = document.getElementById('dailyBanner');
+    if (lastDailyDate !== today) {
+      banner.style.display = 'flex';
+      const bonus = 50 * (dailyStreak + 1);
+      document.getElementById('dailyDesc').textContent = `+${fmt(bonus)} tanga bonus! (${dailyStreak+1}-kun seriyasi)`;
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+
+  function claimDaily() {
+    const today = new Date().toDateString();
+    if (lastDailyDate === today) return;
+    const yesterday = new Date(Date.now() - 86400000).toDateString();
+    if (lastDailyDate === yesterday) dailyStreak++;
+    else dailyStreak = 0;
+    lastDailyDate = today;
+    const bonus = 50 * (dailyStreak + 1);
+    coins       += bonus;
+    totalEarned += bonus;
+    document.getElementById('dailyBanner').style.display = 'none';
+    showToast('🎁 Kunlik bonus: +' + fmt(bonus) + ' tanga!', 'achievement');
+    updateUI();
+    saveGame();
+  }
+
+  // ===== BUY UPGRADE =====
+  function buyUpgrade(u) {
+    const cost = getCost(u);
+    if (coins < cost) {
+      showToast('Tangalar yetarli emas!');
+      return;
+    }
+    coins -= cost;
+    u.count++;
+    recalc();
+    updateUI();
+    renderShop();
+    showToast(u.icon + ' ' + u.name + ' sotib olindi!');
+    saveGame();
+  }
+
+  // ===== COIN CLICK =====
+  function doCoinClick(e) {
+    // combo
+    comboCount++;
+    clearTimeout(comboTimer);
+    comboTimer = setTimeout(() => {
+      comboCount = 0;
+      document.getElementById('comboVal').textContent = '';
+    }, 1500);
+
+    let gain = clickPower;
+    let isCrit = false;
+    if (comboCount >= 10 && Math.random() < 0.15) {
+      gain = clickPower * 3;
+      isCrit = true;
+    }
+
+    coins       += gain;
+    totalEarned += gain;
+    totalClicks++;
+
+    if (comboCount >= 5) {
+      document.getElementById('comboVal').textContent = '🔥 Kombo x' + comboCount + '!';
+    }
+
+    // Float number
+    const stage = document.getElementById('stage');
+    const rect  = stage.getBoundingClientRect();
+    const wrapRect = document.querySelector('.wrap').getBoundingClientRect();
+    const floatEl = document.createElement('div');
+    floatEl.className = 'float-num' + (isCrit ? ' crit' : '');
+    floatEl.textContent = '+' + fmt(gain);
+
+    let x, y;
+    if (e && (e.clientX || e.touches)) {
+      const src = e.touches ? e.touches[0] : e;
+      x = src.clientX - rect.left + stage.offsetLeft - wrapRect.left - 15;
+      y = src.clientY - rect.top  + stage.offsetTop  - wrapRect.top  - 15;
+    } else {
+      x = rect.width / 2 - 20;
+      y = rect.height / 2 - 40;
+    }
+    floatEl.style.left = x + 'px';
+    floatEl.style.top  = y + 'px';
+    stage.appendChild(floatEl);
+    setTimeout(() => floatEl.remove(), 950);
+
+    // Vibrate
+    if (settings.vibrate && navigator.vibrate) navigator.vibrate(18);
+
+    checkAchievements();
+    updateUI();
+    if (totalClicks % 20 === 0) { renderShop(); saveGame(); }
+  }
+
+  // ===== ACHIEVEMENTS =====
+  function checkAchievements() {
+    achievements.forEach(a => {
+      if (!a.done && totalEarned >= a.threshold) {
+        a.done = true;
+        achCount++;
+        showToast(a.icon + ' Yutuq: ' + a.title + '!', 'achievement');
+        saveGame();
+      }
+    });
+  }
+
+  // ===== TOAST =====
+  let toastTimer = null;
+  function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className   = 'toast show' + (type ? ' ' + type : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.className = 'toast'; }, 2200);
+  }
+
+  // ===== TAB NAVIGATION =====
+  function switchTab(tab) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    const panel = document.getElementById('panel-' + tab);
+    if (panel) panel.classList.add('active');
+    const btn = document.querySelector('.nav-btn[data-tab="' + tab + '"]');
+    if (btn) btn.classList.add('active');
+
+    if (tab === 'shop')     renderShop();
+    if (tab === 'rank')     renderRank();
+    if (tab === 'profile')  renderProfile();
+  }
+
+  // ===== AUTO INCOME =====
+  setInterval(() => {
+    if (autoRate > 0) {
+      const gain = autoRate / 20; // 50ms tick
+      coins       += gain;
+      totalEarned += gain;
+      updateUI();
+    }
+  }, 50);
+
+  // Save every 5s
+  setInterval(saveGame, 5000);
+
+  // ===== INIT =====
+  loadSave();
+  recalc();
+  updateUI();
+  renderShop();
+  checkDaily();
+
+  // ===== EVENT LISTENERS =====
+
+  // Bottom nav
+  document.querySelectorAll('.nav-btn[data-tab]').forEach(btn => {
+    btn.addEventListener('click', function() {
+      switchTab(this.dataset.tab);
+    });
+  });
+
+  // Coin button
+  const coinBtn = document.getElementById('coinBtn');
+  coinBtn.addEventListener('click', doCoinClick);
+  coinBtn.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    doCoinClick(e);
+  }, { passive: false });
+
+  // Daily banner
+  document.getElementById('dailyBanner').addEventListener('click', claimDaily);
+
+  // Shop reset
+  document.getElementById('resetBtn').addEventListener('click', function() {
+    if (confirm("Hamma ma'lumotlar o'chib ketadi. Davom etasizmi?")) {
+      localStorage.removeItem('tfp_save');
+      location.reload();
+    }
+  });
+
+  // Rank refresh
+  document.getElementById('rankRefreshBtn').addEventListener('click', function() {
+    renderRank();
+    showToast('Reyting yangilandi!');
+  });
+
+  // Save profile
+  document.getElementById('saveProfileBtn').addEventListener('click', function() {
+    profile.name    = document.getElementById('inpName').value.trim();
+    profile.surname = document.getElementById('inpSur').value.trim();
+    profile.nick    = document.getElementById('inpNick').value.trim() || 'username';
+    profile.age     = document.getElementById('inpAge').value.trim();
+    profile.date    = document.getElementById('inpDate').value;
+    renderProfile();
+    saveGame();
+    showToast('✅ Profil saqlandi!');
+  });
+
+  // Close modal
+  document.getElementById('closeModalBtn').addEventListener('click', function() {
+    document.getElementById('playerModal').classList.remove('active');
+  });
+  document.getElementById('playerModal').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('active');
+  });
+
+  // Settings
+  document.getElementById('settingVibrate').addEventListener('change', function() {
+    settings.vibrate = this.checked;
+    saveGame();
+  });
+  document.getElementById('settingSound').addEventListener('change', function() {
+    settings.sound = this.checked;
+    saveGame();
+  });
+  document.getElementById('settingLang').addEventListener('change', function() {
+    settings.lang = this.value;
+    saveGame();
+  });
+
+  // Apply saved settings
+  document.getElementById('settingVibrate').checked = settings.vibrate;
+  document.getElementById('settingSound').checked   = settings.sound;
+  document.getElementById('settingLang').value      = settings.lang;
+
+})();
+</script>
+</body>
+</html>
