@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Tanga Fabrikasi Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0B1220;
+    --bg2: #121B2E;
+    --gold: #F2B705;
+    --copper: #C97B3D;
+    --cream: #F4EFE3;
+    --green: #4CAF7D;
+    --red: #E0563D;
+    --locked: #3A4256;
+    --card: #161F33;
+    --navh: 68px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{
+    margin:0; padding:0; height:100%;
+    background: radial-gradient(circle at 50% -10%, #1A2540 0%, var(--bg) 55%, #070B14 100%);
+    color: var(--cream);
+    font-family: 'Inter', sans-serif;
+    overflow-x:hidden;
+    user-select:none;
+  }
+  .wrap{
+    max-width: 480px;
+    margin: 0 auto;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    padding: 14px 16px calc(var(--navh) + 24px);
+  }
+  header{ text-align:center; margin-bottom: 4px; }
+  .title{
+    font-family:'Fredoka', sans-serif;
+    font-weight:700;
+    font-size: 22px;
+    letter-spacing: 0.5px;
+    color: var(--gold);
+    margin: 0;
+  }
+  .subtitle{ font-size:11px; color: #8A93A6; margin-top:2px; }
+
+  .panel{ display:none; flex:1; flex-direction:column; }
+  .panel.active{ display:flex; animation: fadeIn 0.18s ease; }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  .counter{ text-align:center; margin: 10px 0 4px; }
+  .coins{
+    font-family:'JetBrains Mono', monospace;
+    font-weight:700; font-size: 38px; color: var(--cream);
+    display:flex; align-items:baseline; justify-content:center; gap:6px;
+  }
+  .coins .sym{ color: var(--gold); font-size: 28px; }
+  .rate{ font-family:'JetBrains Mono', monospace; font-size: 13px; color: var(--green); margin-top: 2px; }
+  .stage{
+    position: relative; display:flex; justify-content:center; align-items:center;
+    margin: 14px 0 4px; height: 190px;
+  }
+  .coin-btn{
+    width: 160px; height: 160px; border-radius: 50%; border: none;
+    background: radial-gradient(circle at 35% 30%, #FFE39A 0%, var(--gold) 45%, var(--copper) 100%);
+    box-shadow: 0 0 0 6px #0B1220, 0 0 0 12px #2c2310, 0 10px 0 0 #8a5a1f, 0 16px 24px rgba(0,0,0,0.5);
+    cursor:pointer; position:relative; transition: transform 0.06s ease;
+    touch-action: manipulation;
+  }
+  .coin-btn:active{
+    transform: translateY(6px) scale(0.97);
+    box-shadow: 0 0 0 6px #0B1220, 0 0 0 12px #2c2310, 0 4px 0 0 #8a5a1f, 0 8px 14px rgba(0,0,0,0.5);
+  }
+  .coin-btn .face{ font-size: 60px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.25)); pointer-events:none; }
+  .shake{ animation: shake 0.25s ease; }
+  @keyframes shake{
+    0%,100%{ transform: translateX(0); }
+    25%{ transform: translateX(-4px) rotate(-1deg); }
+    75%{ transform: translateX(4px) rotate(1deg); }
+  }
+  .float-num{
+    position:absolute; font-family:'JetBrains Mono', monospace; font-weight:700;
+    color: var(--gold); font-size: 20px; pointer-events:none;
+    animation: floatUp 0.9s ease-out forwards; text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+  }
+  .float-num.crit{ color: var(--red); font-size: 24px; }
+  @keyframes floatUp{
+    0%{ opacity:1; transform: translateY(0) scale(1); }
+    100%{ opacity:0; transform: translateY(-90px) scale(1.15); }
+  }
+  .click-power{ text-align:center; font-size: 12px; color: #8A93A6; margin-bottom: 6px; }
+  .click-power b{ color: var(--cream); }
+  .combo{ text-align:center; font-size:11px; color: var(--copper); height:14px; margin-bottom: 4px; }
+
+  .daily-banner{
+    background: linear-gradient(135deg, #2A1F0E, #1A1408);
+    border: 1px solid var(--gold);
+    border-radius: 14px;
+    padding: 10px 14px;
+    display:flex; align-items:center; gap:10px;
+    margin: 6px 0 4px;
+    cursor:pointer;
+    touch-action: manipulation;
+  }
+  .daily-banner .ic{ font-size:24px; }
+  .daily-banner .txt{ flex:1; }
+  .daily-banner .t1{ font-family:'Fredoka', sans-serif; font-weight:600; font-size:13px; color: var(--gold); }
+  .daily-banner .t2{ font-size:11px; color:#8A93A6; }
+
+  .stats-row{ display:flex; gap:8px; margin-top: 10px; }
+  .stat-box{
+    flex:1; background: var(--card); border:1px solid #232E48; border-radius: 12px;
+    padding: 8px 10px; text-align:center;
+  }
+  .stat-box .v{ font-family:'JetBrains Mono', monospace; font-weight:700; font-size:14px; color: var(--cream); }
+  .stat-box .l{ font-size: 10px; color:#8A93A6; margin-top:2px; }
+
+  .section-label{
+    font-family:'Fredoka', sans-serif; font-weight:600; font-size: 14px; color: var(--copper);
+    text-transform: uppercase; letter-spacing: 1px; margin: 10px 0 8px 2px;
+  }
+  .shop{ display:flex; flex-direction:column; gap:8px; }
+  .item{
+    background: var(--card); border: 1px solid #232E48; border-radius: 14px;
+    padding: 10px 12px; display:flex; align-items:center; gap: 12px;
+    cursor:pointer; transition: border-color 0.15s, transform 0.1s;
+    touch-action: manipulation;
+  }
+  .item:active{ transform: scale(0.985); }
+  .item.locked{ opacity: 0.45; cursor: default; }
+  .item .icon{ font-size: 26px; width: 38px; text-align:center; flex-shrink:0; }
+  .item .info{ flex:1; min-width:0; }
+  .item .name{ font-family:'Fredoka', sans-serif; font-weight:600; font-size: 14px; color: var(--cream); }
+  .item .desc{ font-size: 11px; color: #8A93A6; margin-top: 1px; }
+  .item .right{ text-align:right; flex-shrink:0; }
+  .item .cost{ font-family:'JetBrains Mono', monospace; font-weight:700; font-size: 13px; color: var(--gold); }
+  .item.locked .cost{ color: #6B7280; }
+  .item .count{ font-size: 11px; color: #5C6580; margin-top: 1px; }
+  .reset-row{ text-align:center; margin-top: 18px; }
+  .reset-btn{
+    background: none; border: 1px solid #e0563d; color: var(--red); font-size: 11px;
+    padding: 6px 14px; border-radius: 20px; cursor:pointer; font-weight: bold;
+    touch-action: manipulation;
+  }
+
+  .input-group{ display:flex; flex-direction:column; gap:6px; margin-bottom: 10px; width: 100%;}
+  .input-group label{ font-size: 11px; color:#8A93A6; font-weight:600; text-transform:uppercase;}
+  .input-row-twin { display: flex; gap: 8px; width: 100%; }
+  input[type="text"], input[type="number"], input[type="date"], select{
+    width:100%; background:#0E1626; border:1px solid #2A3550; border-radius: 10px;
+    padding: 10px 12px; color: var(--cream); font-family:'Inter',sans-serif; font-size:14px; outline:none;
+  }
+  input:focus, select:focus{ border-color: var(--gold); }
+  
+  .btn-gold {
+    background: var(--gold); border:none; border-radius: 10px; padding: 12px;
+    font-family:'Fredoka', sans-serif; font-weight:600; color:#1A1408; cursor:pointer; font-size:14px;
+    width: 100%; margin-top: 5px; text-align: center; touch-action: manipulation;
+  }
+  .profile-card {
+    background: var(--card); border: 1px solid #232E48; border-radius: 16px; padding: 16px; margin-bottom: 15px;
+    position: relative; overflow: hidden;
+  }
+  .profile-card::before {
+    content: '🏭'; position: absolute; right: -15px; bottom: -15px; font-size: 90px; opacity: 0.05;
+  }
+  .p-main { display: flex; align-items: center; gap: 14px; margin-bottom: 12px;}
+  .p-avatar { width: 50px; height: 50px; border-radius: 50%; background: #2A3550; display: flex; align-items: center; justify-content: center; font-size: 26px; border: 2px solid var(--gold);}
+  .p-names h3 { font-family: 'Fredoka', sans-serif; margin: 0; font-size: 18px; color: var(--cream); }
+  .p-names p { margin: 2px 0 0; font-size: 12px; color: var(--gold); font-family: 'JetBrains Mono', monospace; }
+  .p-details { font-size: 12px; color: #8A93A6; border-top: 1px solid #232E48; padding-top: 10px; display: flex; flex-direction: column; gap: 4px; }
+  
+  .rank-list{ display:flex; flex-direction:column; gap:6px; }
+  .rank-row{
+    display:flex; align-items:center; gap:10px; background: var(--card);
+    border:1px solid #232E48; border-radius: 12px; padding: 10px 12px; cursor: pointer;
+    touch-action: manipulation;
+  }
+  .rank-row.me{ border-color: var(--gold); background:#1E1A0E; }
+  .rank-row .pos{
+    font-family:'JetBrains Mono', monospace; font-weight:700; font-size:13px; color:#8A93A6; width:22px; flex-shrink:0;
+  }
+  .rank-row .pos.top1{ color:#FFD700; font-size: 16px; }
+  .rank-row .pos.top2{ color:#C0C0C0; font-size: 16px; }
+  .rank-row .pos.top3{ color:#CD7F32; font-size: 16px; }
+  .rank-row .nm{ flex:1; font-family:'Fredoka', sans-serif; font-weight:600; font-size:13px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rank-row .sc{ font-family:'JetBrains Mono', monospace; font-weight:700; font-size:12px; color: var(--gold); flex-shrink:0; }
+  .rank-refresh{ text-align:center; margin-top:12px; }
+  .rank-refresh button{
+    background:none; border:1px solid #2A3550; color:#8A93A6; font-size:11px;
+    padding: 7px 16px; border-radius: 20px; cursor:pointer; touch-action: manipulation;
+  }
+
+  .modal {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85);
+    display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px;
+  }
+  .modal.active { display: flex; }
+  .modal-content { background: #121B2E; border: 2px solid var(--gold); border-radius: 20px; width: 100%; max-width: 360px; padding: 20px; position: relative; }
+  .close-modal { position: absolute; top: 12px; right: 16px; font-size: 20px; color: #8A93A6; cursor: pointer; touch-action: manipulation; }
+
+  .setting-row {
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--card); padding: 12px; border-radius: 12px; margin-bottom: 8px; border: 1px solid #232E48;
+  }
+  .setting-label { font-size: 13px; font-weight: 600; }
+  .setting-row select { width: 120px; padding: 6px; font-size: 12px; }
+  
+  .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #3A4256; transition: .3s; border-radius: 24px; }
+  .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+  input:checked + .slider { background-color: var(--green); }
+  input:checked + .slider:before { transform: translateX(20px); }
+
+  .support-box {
+    background: linear-gradient(135deg, #102A45, #0B1220); border: 1px dashed #2979ff;
+    padding: 14px; border-radius: 14px; text-align: center; margin-top: 20px;
+  }
+  .support-box p { font-size: 11px; color: #8A93A6; margin: 0 0 10px; }
+  .support-link {
+    display: inline-flex; align-items: center; gap: 6px; background: #2979ff; color: white;
+    padding: 8px 16px; border-radius: 20px; text-decoration: none; font-size: 12px; font-weight: bold;
+  }
+
+  .toast{
+    position: fixed; bottom: calc(var(--navh) + 14px); left: 50%; transform: translateX(-50%);
+    background: var(--green); color: #0B1220; font-family:'Fredoka', sans-serif; font-weight:600;
+    font-size: 13px; padding: 9px 18px; border-radius: 20px; opacity: 0; transition: opacity 0.25s, bottom 0.25s;
+    pointer-events:none; z-index: 150; white-space:nowrap; max-width: 90vw;
+  }
+  .toast.show{ opacity: 1; }
+  .toast.achievement{ background: var(--gold); }
+
+  .bottom-nav{
+    position: fixed; left:0; right:0; bottom:0; height: var(--navh);
+    background: #0E1626; border-top: 1px solid #232E48; display:flex; justify-content:center; z-index: 40;
+  }
+  .nav-inner{ width:100%; max-width: 480px; display:flex; align-items:stretch; }
+  .nav-btn{
+    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:2px; background:none; border:none; color:#5C6580; cursor:pointer; padding: 4px 0;
+    touch-action: manipulation;
+  }
+  .nav-btn .ic{ font-size: 18px; }
+  .nav-btn .lb{ font-family:'Fredoka', sans-serif; font-weight:600; font-size: 10px; }
+  .nav-btn.active{ color: var(--gold); }
+  .nav-btn.active .ic{ transform: translateY(-1px); }
+  .nav-btn.center .ic{ font-size: 22px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 class="title">🏭 Tanga Fabrikasi Pro</h1>
+    <div class="subtitle">Bos, ishlab top, fabrikangni imperiyaga aylantir</div>
+  </header>
+
+  <!-- CLICK PANEL -->
+  <div class="panel active" id="panel-click">
+    <div class="counter">
+      <div class="coins"><span class="sym">●</span><span id="coinsVal">0</span></div>
+      <div class="rate" id="rateVal">soniyasiga +0</div>
+    </div>
+
+    <div id="dailyBanner" class="daily-banner" style="display:none;">
+      <div class="ic">🎁</div>
+      <div class="txt">
+        <div class="t1">Kunlik bonusni ol!</div>
+        <div class="t2" id="dailyDesc">Bugun uchun sovg'a tayyor</div>
+      </div>
+    </div>
+
+    <div class="stage" id="stage">
+      <button class="coin-btn" id="coinBtn" type="button">
+        <span class="face">🪙</span>
+      </button>
+    </div>
+    <div class="click-power">Har bosishda: <b id="clickPowerVal">+1</b> tanga</div>
+    <div class="combo" id="comboVal"></div>
+
+    <div class="stats-row">
+      <div class="stat-box"><div class="v" id="statClicks">0</div><div class="l">bosishlar</div></div>
+      <div class="stat-box"><div class="v" id="statTotal">0</div><div class="l">jami topilgan</div></div>
+      <div class="stat-box"><div class="v" id="statAch">0</div><div class="l">yutuqlar</div></div>
+    </div>
+  </div>
+
+  <!-- SHOP PANEL -->
+  <div class="panel" id="panel-shop">
+    <div class="section-label">🛒 Do'kon</div>
+    <div class="shop" id="shop"></div>
+    <div class="reset-row">
+      <button class="reset-btn" id="resetBtn" type="button">Ma'lumotlarni o'chirish</button>
+    </div>
+  </div>
+
+  <!-- RANK PANEL -->
+  <div class="panel" id="panel-rank">
+    <div class="section-label">🏆 Dunyo Reytingi</div>
+    <div class="rank-list" id="rankList"></div>
+    <div class="rank-refresh"><button id="rankRefreshBtn" type="button">Yangilash</button></div>
+  </div>
+
+  <!-- PROFILE PANEL -->
+  <div class="panel" id="panel-profile">
+    <div class="section-label">👤 Mening Profilim</div>
+    
+    <div class="profile-card">
+      <div class="p-main">
+        <div class="p-avatar">👑</div>
+        <div class="p-names">
+          <h3 id="profNameDisp">O'yinchi</h3>
+          <p id="profNickDisp">@username</p>
+        </div>
+      </div>
+      <div class="p-details">
+        <div><strong>Yosh:</strong> <span id="profAgeDisp">-</span></div>
+        <div><strong>Tug'ilgan sana:</strong> <span id="profDateDisp">-</span></div>
+        <div><strong>Jami kliklar:</strong> <span id="profClicksDisp">0</span> marta</div>
+        <div><strong>Jami daromad:</strong> ● <span id="profTotalDisp">0</span></div>
+      </div>
+    </div>
+
+    <div class="section-label" style="font-size:12px;">Profil ma'lumotlarini tahrirlash</div>
+    <div style="background: var(--card); padding: 14px; border-radius:14px; border:1px solid #232E48;">
+      <div class="input-row-twin">
+        <div class="input-group">
+          <label>Ism</label>
+          <input type="text" id="inpName" placeholder="Ism">
+        </div>
+        <div class="input-group">
+          <label>Familiya</label>
+          <input type="text" id="inpSur" placeholder="Familiya">
+        </div>
+      </div>
+      <div class="input-row-twin">
+        <div class="input-group">
+          <label>Nik (Reyting uchun)</label>
+          <input type="text" id="inpNick" placeholder="Nik" maxlength="14">
+        </div>
+        <div class="input-group">
+          <label>Yoshingiz</label>
+          <input type="number" id="inpAge" placeholder="Yosh">
+        </div>
+      </div>
+      <div class="input-group">
+        <label>Tug'ilgan sana</label>
+        <input type="date" id="inpDate">
+      </div>
+      <button class="btn-gold" id="saveProfileBtn" type="button">Profilni Saqlash</button>
+    </div>
+  </div>
+
+  <!-- SETTINGS PANEL -->
+  <div class="panel" id="panel-settings">
+    <div class="section-label">⚙️ Sozlamalar</div>
+    
+    <div class="setting-row">
+      <div class="setting-label">O'yin tili (Language)</div>
+      <select id="settingLang">
+        <option value="uz">O'zbekcha</option>
+        <option value="ru">Русский</option>
+        <option value="en">English</option>
+        <option value="tr">Türkçe</option>
+        <option value="tkm">Türkmençe</option>
+        <option value="ko">한국어</option>
+        <option value="ar">العربية</option>
+      </select>
+    </div>
+
+    <div class="setting-row">
+      <div class="setting-label">Tebranish (Vibration Efekt)</div>
+      <label class="switch">
+        <input type="checkbox" id="settingVibrate" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="setting-row">
+      <div class="setting-label">Ovoz effektlari</div>
+      <label class="switch">
+        <input type="checkbox" id="settingSound" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="support-box">
+      <h4 style="font-family:'Fredoka', sans-serif; color:var(--gold); margin:0 0 4px 0;">💡 Taklif va Goya bormi?</h4>
+      <p>O'yinda xatolik topsangiz, yangi g'oyalar yoki hamkorlik taklifingiz bo'lsa, adminga yozishingiz mumkin!</p>
+      <a href="https://t.me/Axel4ik_96" target="_blank" class="support-link">
+        ✈️ Telegram Support (@Axel4ik_96)
+      </a>
+    </div>
+  </div>
+
+</div><!-- .wrap -->
+
+<!-- MODAL -->
+<div class="modal" id="playerModal">
+  <div class="modal-content">
+    <span class="close-modal" id="closeModalBtn">&times;</span>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <div class="nav-inner">
+    <button class="nav-btn" data-tab="shop" type="button">
+      <span class="ic">🛒</span><span class="lb">Do'kon</span>
+    </button>
+    <button class="nav-btn active" data-tab="click" type="button">
+      <span class="ic">🪙</span><span class="lb">Bosish</span>
+    </button>
+    <button class="nav-btn" data-tab="rank" type="button">
+      <span class="ic">🏆</span><span class="lb">Reyting</span>
+    </button>
+    <button class="nav-btn" data-tab="profile" type="button">
+      <span class="ic">👤</span><span class="lb">Profil</span>
+    </button>
+    <button class="nav-btn" data-tab="settings" type="button">
+      <span class="ic">⚙️</span><span class="lb">Sozlamalar</span>
+    </button>
+  </div>
+</div>
+
+<script>
+(function() {
+  // ===== UPGRADES =====
+  const upgrades = [
+    { id:'hammer',   icon:'🔨', name:"Po'lat bolg'a",    desc:'Har bosishda +1 tanga',    baseCost:15,     costMul:1.14, count:0, type:'click', power:1 },
+    { id:'worker',   icon:'👷', name:'Ishchi yollash',    desc:'+1 tanga / soniya',        baseCost:50,     costMul:1.15, count:0, type:'auto',  power:1 },
+    { id:'press',    icon:'🧰', name:'Tanga presi',       desc:'Har bosishda +5 tanga',    baseCost:400,    costMul:1.16, count:0, type:'click', power:5 },
+    { id:'conveyor', icon:'⚙️', name:'Konveyer liniya',   desc:'+8 tanga / soniya',        baseCost:600,    costMul:1.15, count:0, type:'auto',  power:8 },
+    { id:'robot',    icon:'🤖', name:'Robot ishchi',      desc:'+35 tanga / soniya',       baseCost:4000,   costMul:1.16, count:0, type:'auto',  power:35 },
+    { id:'factory',  icon:'🏗️', name:"Yangi zavod qur",  desc:'+150 tanga / soniya',      baseCost:20000,  costMul:1.17, count:0, type:'auto',  power:150 },
+    { id:'bank',     icon:'🏦', name:'Bank filiali',      desc:'+800 tanga / soniya',      baseCost:120000, costMul:1.18, count:0, type:'auto',  power:800 },
+  ];
+
+  const achievements = [
+    { id:'a1', threshold:100,      title:"Birinchi yuzlik",    icon:'🥉', done:false },
+    { id:'a2', threshold:1000,     title:"Ming tanga ustas
